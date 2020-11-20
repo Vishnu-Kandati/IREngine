@@ -2,7 +2,10 @@ from PriorityQueue import PriorityQueue
 from parsedURL import ParsedURLs
 from crawler import Crawler
 from pagecount import page_count
-from utils import get_harvest_rate,create_log,get_start_pages,get_synonyms_and_lemmatized,get_input
+from utils import get_start_pages,get_synonyms_and_lemmatized
+from logger import create_log,get_harvest_rate
+from inputHandler import get_input
+from inputHandler import *
 import time
 import nltk
 nltk.download('punkt')
