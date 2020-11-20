@@ -1,3 +1,6 @@
+'''
+Code redudancy (50.39,62.17)
+'''
 import numpy as np
 from collections import defaultdict
 from math import log
@@ -18,31 +21,22 @@ class BM25Ranker:
             for doc,frequency in self.index.invertedindex[word]:
                 TD[(word,doc)] = frequency
         return TD
-    def getIDF(self,query,TD):
+    def getIDFandTF(self,query,TD):
         IDF={}
+        TF = defaultdict(lambda:0)
         for q in query:
             Nq=0
             for word,_ in TD.keys():
                 if(q==word):
                     Nq+=1
-            IDF[q]=log(1+((self.totalDocs-Nq+0.5)/(Nq+0.5)))
-        return IDF
-    def getTermFrequency(self,query,TD):
-        TF = defaultdict(lambda:0)
-        for q in query:
-            for word,_ in TD.keys():
-                print(word)
-                if(q==word):
                     TF[q]+=1
-        return TF
+            IDF[q]=log(1+((self.totalDocs-Nq+0.5)/(Nq+0.5)))
+        return IDF,TF
+
     def getDocumentsRank(self,query):
         query = word_tokenize(query)
         TD = self.getTDmatrix(query)
-        print(TD)
-        IDF = self.getIDF(query,TD)
-        print(IDF)
-        TF = self.getTermFrequency(query,TD)
-        print(TF)
+        IDF,TF = self.getIDFandTF(query,TD)
         ranks=defaultdict(lambda:0)
         for q in query:
             for word,D in TD.keys():
