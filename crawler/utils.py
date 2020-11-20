@@ -149,36 +149,24 @@ def get_promise(query, mode, synonyms_list, emmatized_wlords):
         query = ''.join(x for x in query if x not in punctuation)
 
         query_terms = [q.lower() for q in query.strip().split()]
-    return query_terms
+        
+        final_promise =  calculate_promise(parent_relevance, url, query_terms)
+
+        return final_promise
 
 ##The method get_promise is splitted into get_promise and calculate_promise to reduce the long paramterlist.
 # Replace Paramater with method call technique is used. 
-def calculate_promise(parent_relevance, url, query_terms)
+def calculate_promise(parent_relevance, url, query)
         # checking if all or any of the terms are in the link, if synonyms are present, if lemmatized words are present
-
-        if all([x in url.lower() for x in query_terms]):  # all query terms are in the URL
-            promise += 0.5
-        elif any([x in url.lower() for x in query_terms]):  # at least 1 query term in URL, but not all
-            promise += 0.250
-        else:  # no query term in URL
-            pass  # keep promise as is
-
-        # checking for synonyms
-        if all([x in url.lower() for x in synonyms_list]):  # all synonyms are in the URL
-            promise += 0.4
-        elif any([x in url.lower() for x in synonyms_list]):  # at least 1 synonym is in URL, but not all
-            promise += 0.2
-        else:  # no synonym in URL
-            pass  # keep promise as is
-
-        # checking for lemmatized words
-        if all([x in url.lower() for x in lemmatized_words]):  # all lemmatized words are in the URL
-            promise += 0.4
-        elif any([x in url.lower() for x in lemmatized_words]):  # at least 1 lemmatized word is in URL, but not all
-            promise += 0.2
-        else:  # no lemmatized word in URL
-            pass  # keep promise as is
-
+        d={'queryterms':[0.2,0.25],'synonyms_list':[0.4,0.2],'lematizedwords':[0.4,0.2]}
+        check_terms = [query_terms,synonymslist,lematized_words]
+        for i in range(len(check_terms)):
+            if all([x in url.lower() for x in check_terms]):  # all query terms are in the URL
+                promise += d[check_terms[i]][0]
+            elif any([x in url.lower() for x in check_terms]):  # at least 1 query term in URL, but not all
+                promise += d[check_terms[i]][1]
+            else:  # no query term in URL
+                pass  # keep promise as it is   
         promise += 0.25 * parent_relevance  # giving a certain weight to URL's parent's relevance
         promise /= len(url)  # to penalize longer URLs
         return promise
@@ -199,51 +187,37 @@ def get_relevance(html_text, query, synonyms_list, lemmatized_words):
     if soup.title:
         # TITLE
         title = soup.title.text.lower()
-        relevance_title = get_relevance(title) 
+        relevance_title = calculate_relevance(title,"title") 
         relevance += relevance_title
     if soup.find('h1'):
         # FIRST HEADING
         h1 = soup.find('h1').text.lower()  # first h1 heading
-        relevance_heading = get_relevance(h1)
+        relevance_heading = calculate_relevance(h1,"heading")
         relevance += relevance_heading
     if soup.find_all('a'):
         # ANCHOR TAGS TEXT
         a_text = ' '.join(list(set([a.text.lower() for a in soup.find_all('a')])))  # anchor tags text combined
-        relevance_anchor = get_relevance(a_text)
+        relevance_anchor = calculate_relevance(a_text,"anchor")
         relevance += relevance_anchor
     if soup.find_all('b'):
         # BOLD TEXT
         bold = ' '.join(list(set([b.text.lower() for b in soup.find_all('b')])))  # bold text combined
-        relevance_anchor = get_relevance(bold)
+        relevance_anchor = calculate_relevance(bold,"bold")
         relevance += relevance_anchor
     return relevance
 
 ## Extract method Refactoring Technique
-def calculate relevance(part):
+def calculate_relevance(query, partOfPage):
+        d={'title':[0.25,0.15,0.2,0.1,0.2,0.1],'heading':[0.5,0.45,0.45,0.4,0.45,0.4],'anchor':[0.25,0.15,0.2,0.1,0.2,0.1],'Bold':[0.25,0.15,0.2,0.1,0.2,0.1]}
         relevance = 0
-        # checking query terms -----------------------------------------
-        if all([q in title for q in part): 
-            relevance += 0.25
-        elif any([q in title for q in part]):  # at least one term in title but not all
-            relevance += 0.15
-        else:
-            pass  # keep relevance as is
-
-        # checking synonyms_list terms ----------------------------------
-        if all([q in title for q part]): 
-            relevance += 0.2
-        elif any([q in title for q in part]):  # at least one term in title but not all
-            relevance += 0.1
-        else:
-            pass  # keep relevance as is
-
-        # checking lemmatized words -----------------------------------------
-        if all([q in title for q in part]):  
-            relevance += 0.2
-        elif any([q in title for q in part]):  # at least one term in title but not all
-            relevance += 0.1
-        else:
-            pass  # keep relevance as is
+        check_terms = [query_terms,synonymslist,lematized_words]
+        for i in range(len(check_terms)):
+            if all([query in partofpage for query in check_terms[i]):  # all terms
+                relevance += d[partOfPage][2*i]
+            elif any([query in partofpage for query in check_terms[i]):  # at least one term 
+                relevance += d[partOfPage][2*i+1]
+            else:
+                pass  # keep relevance as is
         return relevance
 
 def get_synonyms_and_lemmatized(query):
