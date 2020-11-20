@@ -136,27 +136,26 @@ def get_input():
     return query, int(num_start_pages), int(n), int(page_link_limit), mode, int(relevance_threshold)
 
 
-def get_promise(query, mode, synonyms_list, emmatized_wlords):
+def get_promise(query, mode, url, synonyms_list, lematized_words):
     """ returns the promise of a URL, based on which URLs are placed on the priority queue """
     if mode.lower() == 'bfs':
         return 1  # all pages have the same promise in a simple bfs crawl since we do not compute relevance
     else:
         # calculate promise based on the link
-        promise = 0
-
         # remove punctuation from query
         punctuation = set(string.punctuation)
         query = ''.join(x for x in query if x not in punctuation)
 
         query_terms = [q.lower() for q in query.strip().split()]
-        
-        final_promise =  calculate_promise(parent_relevance, url, query_terms)
+        parent_relevance = 0.5
+        final_promise =  calculate_promise(parent_relevance, url, query_terms,synonyms_list,lematized_words)
 
         return final_promise
 
 ##The method get_promise is splitted into get_promise and calculate_promise to reduce the long paramterlist.
 # Replace Paramater with method call technique is used. 
-def calculate_promise(parent_relevance, url, query)
+def calculate_promise(parent_relevance, url, query_terms,synonymslist,lematized_words):
+        promise = 0 
         # checking if all or any of the terms are in the link, if synonyms are present, if lemmatized words are present
         d={'queryterms':[0.2,0.25],'synonyms_list':[0.4,0.2],'lematizedwords':[0.4,0.2]}
         check_terms = [query_terms,synonymslist,lematized_words]
@@ -172,7 +171,7 @@ def calculate_promise(parent_relevance, url, query)
         return promise
 
 ##Long Method Code Smell
-def get_relevance(html_text, query, synonyms_list, lemmatized_words):
+def get_relevance(html_text, query, synonyms_list, lematized_words):
     """ returns the relevance of a page after crawling it """
 
     # remove punctuation from query
@@ -187,34 +186,34 @@ def get_relevance(html_text, query, synonyms_list, lemmatized_words):
     if soup.title:
         # TITLE
         title = soup.title.text.lower()
-        relevance_title = calculate_relevance(title,"title") 
+        relevance_title = calculate_relevance(title,"title",query_terms,synonyms_list,lematized_words) 
         relevance += relevance_title
     if soup.find('h1'):
         # FIRST HEADING
         h1 = soup.find('h1').text.lower()  # first h1 heading
-        relevance_heading = calculate_relevance(h1,"heading")
+        relevance_heading = calculate_relevance(h1,"heading",query_terms,synonyms_list,lematized_words)
         relevance += relevance_heading
     if soup.find_all('a'):
         # ANCHOR TAGS TEXT
         a_text = ' '.join(list(set([a.text.lower() for a in soup.find_all('a')])))  # anchor tags text combined
-        relevance_anchor = calculate_relevance(a_text,"anchor")
+        relevance_anchor = calculate_relevance(a_text,"anchor",query_terms,synonyms_list,lematized_words)
         relevance += relevance_anchor
     if soup.find_all('b'):
         # BOLD TEXT
         bold = ' '.join(list(set([b.text.lower() for b in soup.find_all('b')])))  # bold text combined
-        relevance_anchor = calculate_relevance(bold,"bold")
+        relevance_anchor = calculate_relevance(bold,"bold",query_terms,synonyms_list,lematized_words)
         relevance += relevance_anchor
     return relevance
 
 ## Extract method Refactoring Technique
-def calculate_relevance(query, partOfPage):
+def calculate_relevance(query, partOfPage,query_terms,synonymslist,lematized_words):
         d={'title':[0.25,0.15,0.2,0.1,0.2,0.1],'heading':[0.5,0.45,0.45,0.4,0.45,0.4],'anchor':[0.25,0.15,0.2,0.1,0.2,0.1],'Bold':[0.25,0.15,0.2,0.1,0.2,0.1]}
         relevance = 0
         check_terms = [query_terms,synonymslist,lematized_words]
         for i in range(len(check_terms)):
-            if all([query in partofpage for query in check_terms[i]):  # all terms
+            if all(query in partOfPage for query in check_terms[i]):  # all terms
                 relevance += d[partOfPage][2*i]
-            elif any([query in partofpage for query in check_terms[i]):  # at least one term 
+            elif any(query in partOfPage for query in check_terms[i]):  # at least one term 
                 relevance += d[partOfPage][2*i+1]
             else:
                 pass  # keep relevance as is
